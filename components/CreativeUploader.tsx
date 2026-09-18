@@ -95,7 +95,11 @@ export function CreativeUploader({ categories }: { categories: Array<{ id: strin
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Falha no upload.");
 
-      setMessage(`${data.created} criativo(s) enviados com sucesso.`);
+      const skippedParts: string[] = [];
+      if (data.skippedTooLarge) skippedParts.push(`${data.skippedTooLarge} muito grande(s)`);
+      if (data.skippedUnsupportedType) skippedParts.push(`${data.skippedUnsupportedType} formato não suportado`);
+      const skippedNote = skippedParts.length > 0 ? ` (${skippedParts.join(", ")} — ignorado(s))` : "";
+      setMessage(`${data.created} criativo(s) enviados com sucesso.${skippedNote}`);
       setPending([]);
       setProduct("");
       setTags("");

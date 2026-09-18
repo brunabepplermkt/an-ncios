@@ -11,6 +11,19 @@ function extensionFromFileName(fileName: string): string {
 }
 
 /**
+ * Defense in depth: every key this adapter hands out is `randomUUID() +
+ * extension`, so a well-formed key never contains a path separator or a
+ * ".." segment. Reject anything else before it ever reaches the filesystem
+ * — callers (the /api/files/[key] route) already gate on a DB lookup, but
+ * this must not depend on that alone.
+ */
+function assertSafeKey(key: string): void {
+  if (key.includes("/") || key.includes("\\") || key.includes("..") || path.isAbsolute(key)) {
+    throw new Error("Chave de armazenamento inválida.");
+  }
+}
+
+/**
  * Dev-appropriate storage: saves creative files to storage/uploads on the
  * local filesystem and serves them through /api/files/[key]. Fine for a
  * single-user local tool; not meant to survive a redeploy of a hosted
@@ -34,11 +47,13 @@ export class LocalFileSystemStorageAdapter implements CreativeStorageAdapter {
   }
 
   async delete(key: string): Promise<void> {
+    assertSafeKey(key);
     const fullPath = path.join(UPLOAD_DIR, key);
     await unlink(fullPath).catch(() => undefined);
   }
 }
 
 export function resolveUploadPath(key: string): string {
+  assertSafeKey(key);
   return path.join(UPLOAD_DIR, key);
 }

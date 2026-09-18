@@ -305,11 +305,21 @@ export function DraftWizard({
             Próximo
           </button>
         ) : (
-          <button onClick={saveDraft} disabled={saving} className="rounded-md bg-accent px-5 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50">
-            {saving ? "Salvando..." : "Salvar draft"}
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              disabled
+              title="Publicação ainda não habilitada"
+              className="cursor-not-allowed rounded-md border border-border px-5 py-2 text-sm font-medium text-muted opacity-50"
+            >
+              Publicar (em breve)
+            </button>
+            <button onClick={saveDraft} disabled={saving} className="rounded-md bg-accent px-5 py-2 text-sm font-medium text-accent-foreground disabled:opacity-50">
+              {saving ? "Salvando..." : "Salvar draft"}
+            </button>
+          </div>
         )}
       </div>
+      {step === steps.length - 1 && <p className="mt-2 text-xs text-muted">Publicação ainda não habilitada nesta versão — apenas leitura de dados e rascunhos.</p>}
       {savedMessage && <p className="mt-2 text-sm text-muted">{savedMessage}</p>}
     </div>
   );

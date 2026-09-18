@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCreativeStorageAdapter } from "@/lib/storage";
-import { classifyCreativeMime } from "@/lib/creatives/validate";
+import { classifyCreativeMime, isFileSizeAllowed, MAX_FILES_PER_UPLOAD, sanitizeFileName } from "@/lib/creatives/validate";
 
 export async function POST(req: Request) {
   const form = await req.formData();
   const files = form.getAll("files").filter((f): f is File => f instanceof File);
   if (files.length === 0) {
     return NextResponse.json({ error: "Nenhum arquivo enviado." }, { status: 400 });
+  }
+  if (files.length > MAX_FILES_PER_UPLOAD) {
+    return NextResponse.json({ error: `No máximo ${MAX_FILES_PER_UPLOAD} arquivos por envio.` }, { status: 400 });
   }
 
   let metaByIndex: Array<{ width?: number; height?: number; durationSeconds?: number }> = [];
@@ -31,23 +34,30 @@ export async function POST(req: Request) {
 
   const storage = getCreativeStorageAdapter();
   const created = [];
+  let skippedUnsupportedType = 0;
+  let skippedTooLarge = 0;
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     const mimeType = file.type || "application/octet-stream";
     const kind = classifyCreativeMime(mimeType);
     if (!kind) {
+      skippedUnsupportedType++;
       continue; // skip unsupported type instead of failing the whole batch
+    }
+    if (!isFileSizeAllowed(kind, file.size)) {
+      skippedTooLarge++;
+      continue; // skip oversized file instead of failing the whole batch
     }
     const isImage = kind === "IMAGE";
 
     const buffer = Buffer.from(await file.arrayBuffer());
-    const stored = await storage.save({ buffer, fileName: file.name, mimeType });
+    const stored = await storage.save({ buffer, fileName: sanitizeFileName(file.name), mimeType });
     const meta = metaByIndex[i] ?? {};
 
     const creative = await prisma.creative.create({
       data: {
-        fileName: file.name,
+        fileName: sanitizeFileName(file.name),
         storageKey: stored.key,
         mimeType,
         kind: isImage ? "IMAGE" : "VIDEO",
@@ -65,13 +75,11 @@ export async function POST(req: Request) {
   }
 
   if (created.length === 0) {
-    return NextResponse.json(
-      { error: "Nenhum arquivo com formato suportado (JPG, JPEG, PNG, WEBP, MP4, MOV)." },
-      { status: 400 }
-    );
+    const reason = skippedTooLarge > 0 ? "excedem o tamanho máximo permitido" : "não têm formato suportado (JPG, JPEG, PNG, WEBP, MP4, MOV)";
+    return NextResponse.json({ error: `Nenhum arquivo enviado: todos ${reason}.` }, { status: 400 });
   }
 
-  return NextResponse.json({ created: created.length });
+  return NextResponse.json({ created: created.length, skippedUnsupportedType, skippedTooLarge });
 }
 
 export async function PATCH(req: Request) {

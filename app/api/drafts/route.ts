@@ -8,13 +8,17 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const body = await req.json();
+  if (body.platform !== "META" && body.platform !== "GOOGLE") {
+    return NextResponse.json({ error: "platform deve ser META ou GOOGLE." }, { status: 400 });
+  }
+  const budget = body.budget ? Number(body.budget) : null;
   const draft = await prisma.draft.create({
     data: {
       platform: body.platform,
       name: body.name || "Sem título",
       objective: body.objective || null,
       product: body.product || null,
-      budget: body.budget ? Number(body.budget) : null,
+      budget: budget !== null && Number.isFinite(budget) ? budget : null,
       location: body.location || null,
       audience: body.audience || null,
       landingPage: body.landingPage || null,

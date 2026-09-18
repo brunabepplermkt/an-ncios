@@ -1,0 +1,140 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum Platform {
+  META
+  GOOGLE
+}
+
+enum CreativeKind {
+  IMAGE
+  VIDEO
+}
+
+enum DraftStatus {
+  INCOMPLETE
+  READY_FOR_REVIEW
+  APPROVED
+  WAITING_CONNECTION
+}
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  createdAt DateTime   @default(now())
+  creatives Creative[]
+}
+
+model Creative {
+  id              String   @id @default(cuid())
+  fileName        String
+  storageKey      String
+  mimeType        String
+  kind            CreativeKind
+  sizeBytes       Int
+  width           Int?
+  height          Int?
+  durationSeconds Float?
+  product         String?
+  tags            String   @default("[]") // JSON string array
+  note            String?
+  categoryId      String?
+  category        Category? @relation(fields: [categoryId], references: [id])
+  createdAt       DateTime @default(now())
+
+  usages       CampaignCreative[]
+  metricsDaily CreativeMetricDaily[]
+}
+
+model Campaign {
+  id           String   @id @default(cuid())
+  platform     Platform
+  name         String
+  status       String // ACTIVE | PAUSED | ENDED (demo/real, freeform)
+  objective    String?
+  dailyBudget  Float?
+  isDemo       Boolean  @default(true)
+  externalId   String?
+  createdAt    DateTime @default(now())
+
+  metricsDaily CampaignMetricDaily[]
+  creatives    CampaignCreative[]
+}
+
+model CampaignMetricDaily {
+  id           String   @id @default(cuid())
+  campaignId   String
+  campaign     Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  date         DateTime
+  impressions  Int      @default(0)
+  reach        Int?
+  clicks       Int      @default(0)
+  spend        Float    @default(0)
+  conversions  Float    @default(0)
+  revenue      Float?
+  frequency    Float?
+
+  @@index([campaignId, date])
+}
+
+model CampaignCreative {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  creativeId String
+  creative   Creative @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, creativeId])
+}
+
+model CreativeMetricDaily {
+  id          String   @id @default(cuid())
+  creativeId  String
+  creative    Creative @relation(fields: [creativeId], references: [id], onDelete: Cascade)
+  campaignId  String?
+  platform    Platform
+  date        DateTime
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  spend       Float    @default(0)
+  conversions Float    @default(0)
+
+  @@index([creativeId, date])
+}
+
+model Draft {
+  id           String      @id @default(cuid())
+  platform     Platform
+  name         String
+  objective    String?
+  product      String?
+  budget       Float?
+  location     String?
+  audience     String?
+  landingPage  String?
+  headline     String?
+  primaryText  String?
+  cta          String?
+  keywords     String      @default("[]")
+  headlines    String      @default("[]")
+  descriptions String      @default("[]")
+  creativeIds  String      @default("[]")
+  status       DraftStatus @default(INCOMPLETE)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model Settings {
+  id           Int      @id @default(1)
+  businessName String   @default("Meu Negócio")
+  currency     String   @default("BRL")
+  timezone     String   @default("America/Sao_Paulo")
+  aiProvider   String   @default("mock")
+  updatedAt    DateTime @updatedAt
+}

@@ -40,7 +40,7 @@ export default async function CampaignDetailPage({
           <>
             <PlatformBadge platform={campaign.platform} />
             <StatusBadge status={campaign.status} />
-            <DemoBadge />
+            {campaign.isDemo && <DemoBadge />}
           </>
         }
       />

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { normalizeMetrics } from "@/lib/metrics/calc";
 import type { NormalizedMetrics, RawMetrics } from "@/lib/metrics/types";
+import { campaignModeWhere } from "./campaigns";
 
 export interface CreativeListItem {
   id: string;
@@ -88,8 +89,20 @@ export interface CreativeStats {
   neverUsed: boolean;
 }
 
-/** Aggregates CreativeMetricDaily per creative and flags fatigue (CTR drop between two recent windows). */
+/**
+ * Aggregates CreativeMetricDaily per creative and flags fatigue (CTR drop
+ * between two recent windows). Only counts usage/metrics tied to campaigns
+ * in the platform's current mode (DEMO or REAL) — once a platform switches
+ * to REAL, its old demo campaigns' creative metrics stop counting here.
+ */
 export async function getCreativeStats(windowDays = 7): Promise<CreativeStats[]> {
+  const [metaWhere, googleWhere] = await Promise.all([campaignModeWhere("META"), campaignModeWhere("GOOGLE")]);
+  const validCampaigns = await prisma.campaign.findMany({
+    where: { OR: [metaWhere, googleWhere] },
+    select: { id: true },
+  });
+  const validCampaignIds = new Set(validCampaigns.map((c) => c.id));
+
   const creatives = await prisma.creative.findMany({
     include: {
       metricsDaily: { orderBy: { date: "desc" } },
@@ -102,7 +115,10 @@ export async function getCreativeStats(windowDays = 7): Promise<CreativeStats[]>
   const priorStart = new Date(now.getTime() - windowDays * 2 * 86_400_000);
 
   return creatives.map((c) => {
-    const totalRaw: RawMetrics = c.metricsDaily.reduce<RawMetrics>(
+    const metricsDaily = c.metricsDaily.filter((m) => !m.campaignId || validCampaignIds.has(m.campaignId));
+    const usages = c.usages.filter((u) => validCampaignIds.has(u.campaignId));
+
+    const totalRaw: RawMetrics = metricsDaily.reduce<RawMetrics>(
       (acc, m) => ({
         impressions: acc.impressions + m.impressions,
         clicks: acc.clicks + m.clicks,
@@ -112,8 +128,8 @@ export async function getCreativeStats(windowDays = 7): Promise<CreativeStats[]>
       { impressions: 0, clicks: 0, spend: 0, conversions: 0 }
     );
 
-    const recent = c.metricsDaily.filter((m) => m.date >= recentStart);
-    const prior = c.metricsDaily.filter((m) => m.date >= priorStart && m.date < recentStart);
+    const recent = metricsDaily.filter((m) => m.date >= recentStart);
+    const prior = metricsDaily.filter((m) => m.date >= priorStart && m.date < recentStart);
 
     const recentCtr = ctrOf(recent);
     const priorCtr = ctrOf(prior);
@@ -128,13 +144,13 @@ export async function getCreativeStats(windowDays = 7): Promise<CreativeStats[]>
       kind: c.kind,
       categoryName: null,
       product: c.product,
-      campaignsUsed: c.usages.map((u) => u.campaign.name),
+      campaignsUsed: usages.map((u) => u.campaign.name),
       totalRaw,
       totalNormalized: normalizeMetrics(totalRaw),
       recentCtr,
       priorCtr,
       fatigueDropPct,
-      neverUsed: c.usages.length === 0,
+      neverUsed: usages.length === 0,
     };
   });
 }

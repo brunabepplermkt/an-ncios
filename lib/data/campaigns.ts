@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db";
 import { normalizeMetrics, sumRawMetrics } from "@/lib/metrics/calc";
 import type { NormalizedMetrics, RawMetrics } from "@/lib/metrics/types";
+import { getPlatformModes, isDemoFilterFor } from "./mode";
 import type { Period } from "./period";
 import { previousPeriod } from "./period";
 
@@ -13,6 +14,8 @@ export interface CampaignWithMetrics {
   status: string;
   objective: string | null;
   dailyBudget: number | null;
+  isDemo: boolean;
+  externalId: string | null;
   raw: RawMetrics;
   normalized: NormalizedMetrics;
 }
@@ -38,12 +41,22 @@ async function sumMetricsForCampaigns(campaignIds: string[], period: Period) {
   return map;
 }
 
+/** Builds a Prisma where-clause that never mixes demo and real campaigns for the same platform. */
+export async function campaignModeWhere(platform: PlatformFilter) {
+  const modes = await getPlatformModes();
+  if (platform === "ALL") {
+    return { OR: [{ platform: "META" as const, isDemo: isDemoFilterFor(modes.META) }, { platform: "GOOGLE" as const, isDemo: isDemoFilterFor(modes.GOOGLE) }] };
+  }
+  return { platform, isDemo: isDemoFilterFor(modes[platform]) };
+}
+
 export async function getCampaignsWithMetrics(
   period: Period,
   platform: PlatformFilter = "ALL"
 ): Promise<CampaignWithMetrics[]> {
+  const where = await campaignModeWhere(platform);
   const campaigns = await prisma.campaign.findMany({
-    where: platform === "ALL" ? {} : { platform },
+    where,
     orderBy: { createdAt: "asc" },
   });
   const sums = await sumMetricsForCampaigns(campaigns.map((c) => c.id), period);
@@ -57,6 +70,8 @@ export async function getCampaignsWithMetrics(
       status: c.status,
       objective: c.objective,
       dailyBudget: c.dailyBudget,
+      isDemo: c.isDemo,
+      externalId: c.externalId,
       raw,
       normalized: normalizeMetrics(raw),
     };
@@ -150,6 +165,8 @@ export async function getCampaignDetail(id: string, period: Period): Promise<Cam
     status: campaign.status,
     objective: campaign.objective,
     dailyBudget: campaign.dailyBudget,
+    isDemo: campaign.isDemo,
+    externalId: campaign.externalId,
     raw,
     normalized: normalizeMetrics(raw),
     series,

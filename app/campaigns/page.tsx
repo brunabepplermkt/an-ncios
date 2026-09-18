@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { FilterBar } from "@/components/FilterBar";
-import { Card, DemoBadge, PageHeader, PlatformBadge, StatusBadge } from "@/components/ui";
+import { ModeBadges } from "@/components/ModeBadges";
+import { Card, PageHeader, PlatformBadge, StatusBadge } from "@/components/ui";
 import { getCampaignsWithMetrics } from "@/lib/data/campaigns";
+import { getPlatformModes } from "@/lib/data/mode";
 import type { PeriodKey } from "@/lib/data/period";
 import { resolvePeriod } from "@/lib/data/period";
 import { formatCurrency, formatNumber, formatPercent, formatRatio } from "@/lib/metrics/calc";
@@ -23,7 +25,7 @@ export default async function CampaignsPage({
   const sort = (sp.sort as SortKey) ?? "spend";
   const period = resolvePeriod(periodKey);
 
-  const [campaigns, settings] = await Promise.all([getCampaignsWithMetrics(period, platform), getSettings()]);
+  const [campaigns, settings, modes] = await Promise.all([getCampaignsWithMetrics(period, platform), getSettings(), getPlatformModes()]);
 
   const filtered = campaigns.filter((c) => c.name.toLowerCase().includes(search));
   const sorted = [...filtered].sort((a, b) => {
@@ -49,7 +51,7 @@ export default async function CampaignsPage({
 
   return (
     <div>
-      <PageHeader title="Campanhas" description="Todas as campanhas, Meta e Google, lado a lado." actions={<DemoBadge />} />
+      <PageHeader title="Campanhas" description="Todas as campanhas, Meta e Google, lado a lado." actions={<ModeBadges modes={modes} />} />
       <FilterBar basePath="/campaigns" currentPeriod={periodKey} currentPlatform={platform} extraParams={{ q: sp.q ?? "", sort }} />
 
       <form action="/campaigns" method="get" className="mb-4 flex gap-2">

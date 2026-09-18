@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { FilterBar } from "@/components/FilterBar";
-import { Card, DemoBadge, PageHeader, PlatformBadge, SeverityBadge, StatTile } from "@/components/ui";
+import { ModeBadges } from "@/components/ModeBadges";
+import { Card, PageHeader, PlatformBadge, SeverityBadge, StatTile } from "@/components/ui";
 import { getDashboardSummary } from "@/lib/data/campaigns";
 import { getCreativeStats } from "@/lib/data/creatives";
+import { getPlatformModes } from "@/lib/data/mode";
 import type { PeriodKey } from "@/lib/data/period";
 import { resolvePeriod } from "@/lib/data/period";
 import { formatCurrency, formatNumber, formatPercent, formatRatio } from "@/lib/metrics/calc";
@@ -20,10 +22,11 @@ export default async function DashboardPage({
   const platform = (sp.platform as "META" | "GOOGLE" | "ALL") ?? "ALL";
   const periodKey = (sp.period as PeriodKey) ?? "30d";
 
-  const [summary, settings, creativeStats] = await Promise.all([
+  const [summary, settings, creativeStats, modes] = await Promise.all([
     getDashboardSummary(period, platform),
     getSettings(),
     getCreativeStats(7),
+    getPlatformModes(),
   ]);
 
   const currency = settings.currency;
@@ -46,7 +49,7 @@ export default async function DashboardPage({
       <PageHeader
         title="Dashboard"
         description="Visão unificada de investimento e performance em Meta e Google Ads."
-        actions={<DemoBadge />}
+        actions={<ModeBadges modes={modes} />}
       />
 
       <FilterBar basePath="/dashboard" currentPeriod={periodKey} currentPlatform={platform} />

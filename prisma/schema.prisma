@@ -24,6 +24,48 @@ enum DraftStatus {
   WAITING_CONNECTION
 }
 
+enum SyncStatus {
+  SUCCESS
+  ERROR
+}
+
+/// Non-sensitive connection state per platform. Access tokens / secrets are
+/// NEVER stored here — they live only in server-side env vars (see .env.example).
+/// This table only remembers which account was selected and the outcome of
+/// the last test/sync, so the UI can render "Conectado" without re-hitting
+/// the provider on every page load.
+model Integration {
+  id                  String    @id @default(cuid())
+  platform            Platform  @unique
+  accountId           String? // external ad account / customer id — not a secret
+  accountName         String?
+  loginCustomerId     String? // Google MCC login-customer-id — not a secret
+  lastTestedAt        DateTime?
+  lastTestOk          Boolean?
+  lastSyncedAt        DateTime?
+  lastSyncStatus      SyncStatus?
+  lastSyncMessage     String?
+  lastSyncCampaigns   Int?
+  lastSyncPeriodStart DateTime?
+  lastSyncPeriodEnd   DateTime?
+  updatedAt           DateTime  @updatedAt
+}
+
+/// Audit trail of every manual sync attempt (kept even on failure) so
+/// "Integrações" can show a history, not just the latest state.
+model SyncLog {
+  id                String     @id @default(cuid())
+  platform          Platform
+  status            SyncStatus
+  message           String?
+  campaignsImported Int        @default(0)
+  periodStart       DateTime?
+  periodEnd         DateTime?
+  createdAt         DateTime   @default(now())
+
+  @@index([platform, createdAt])
+}
+
 model Category {
   id        String     @id @default(cuid())
   name      String     @unique
@@ -47,6 +89,12 @@ model Creative {
   categoryId      String?
   category        Category? @relation(fields: [categoryId], references: [id])
   createdAt       DateTime @default(now())
+
+  /// Best-effort link to an existing Meta ad creative, set only by the
+  /// (read-only) matching pass during a Meta sync. Never used to fetch or
+  /// duplicate the remote asset, and never used to modify the remote ad.
+  externalMetaId        String?
+  externalMetaMatchedAt DateTime?
 
   usages       CampaignCreative[]
   metricsDaily CreativeMetricDaily[]
@@ -80,7 +128,7 @@ model CampaignMetricDaily {
   revenue      Float?
   frequency    Float?
 
-  @@index([campaignId, date])
+  @@unique([campaignId, date])
 }
 
 model CampaignCreative {

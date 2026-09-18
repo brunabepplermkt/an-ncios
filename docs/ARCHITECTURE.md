@@ -16,9 +16,17 @@ app/
 lib/
   adapters/
     types.ts                    AdReadAdapter / AdWriteAdapter (contratos)
+    errors.ts                   AdApiError + classificação CONFIG/AUTH/PERMISSION/RATE_LIMIT
     disabled-write-adapter.ts   Toda escrita real fica bloqueada aqui
-    meta/read-adapter.ts        Usa meta-ads-open-cli (somente leitura)
-    google/read-adapter.ts      Reporta status; chamada real fica para amanhã
+    meta/read-adapter.ts        meta-ads-open-cli real (somente leitura), campos verificados na fonte
+    meta/creative-match.ts      Vínculo read-only por nome com criativos já existentes na Meta
+    google/oauth.ts              Troca refresh_token -> access_token (OAuth2 padrão)
+    google/gaql.ts                Builders/parsers GAQL puros (testáveis sem credenciais)
+    google/read-adapter.ts       REST direto (googleAds:search) — não exercitado contra conta real
+  sync.ts                 Rotina compartilhada de sincronização manual (upsert idempotente)
+  integrations.ts          Status não-sensível de conexão (Integration/SyncLog) + resolvers de UI
+  diagnostics.ts            Recálculo independente para validar CTR/CPC/CPM/CPA/ROAS
+  rate-limit.ts             Cooldown básico em memória para test/sync
   ai/
     provider.ts        Interface AIProvider
     mock-provider.ts    Implementação atual — analisa dados reais via regras
@@ -29,9 +37,10 @@ lib/
     types.ts   NormalizedMetrics / RawMetrics
     calc.ts     Cálculos (CTR, CPC, CPM, CPA, ROAS) com valores ausentes tratados
   data/
-    campaigns.ts   Agregações de campanhas + período anterior (comparações)
+    campaigns.ts   Agregações de campanhas + período anterior (comparações) + campaignModeWhere
     creatives.ts     Estatísticas de criativos (fadiga, não usados, top)
-    period.ts         Resolução de filtros de período
+    mode.ts           DEMO vs REAL por plataforma
+    period.ts         Resolução de filtros de período, timezone-aware (Intl, não o fuso do servidor)
   demo/
     seed-data.ts             Geração determinística de dados demo
     google-keywords.ts        Demo para a IA responder sobre keywords
@@ -53,7 +62,17 @@ prisma/schema.prisma   Modelo de dados (SQLite hoje; migrável para Postgres/Sup
 - `Creative` + `CreativeMetricDaily` + `CampaignCreative`: biblioteca de criativos, uso em campanhas e desempenho por dia.
 - `Draft`: campanha montada no wizard, nunca publicada.
 - `Category`: taxonomia editável usada nos criativos.
-- `Settings`: linha única com preferências do negócio.
+- `Settings`: linha única com preferências do negócio (inclui `timezone`, usado por `resolvePeriod`).
+- `Integration`: 1 linha por plataforma — conta selecionada, resultado do último teste/sync. **Nunca guarda token/secret**, só IDs não-sensíveis.
+- `SyncLog`: histórico de cada tentativa de sincronização (sucesso/erro, quantas campanhas, período).
+
+## Modo DEMO/REAL
+
+`lib/data/mode.ts` decide, por plataforma, se o app está em modo `DEMO` ou `REAL`: assim que existir 1+ campanha real (`isDemo=false`) para aquela plataforma, ela vira `REAL`. `campaignModeWhere()` garante que toda consulta (`getCampaignsWithMetrics`, `getDashboardSummary`, `getCreativeStats`) filtra automaticamente para nunca misturar demo com real — sem precisar apagar os dados demo (eles só ficam ocultos). O selo "DADOS DEMO" na UI (`components/ModeBadges.tsx`) reflete esse estado por plataforma, não um booleano global.
+
+## Sincronização manual
+
+`lib/sync.ts` é o único caminho que grava campanhas/métricas reais no banco. Chamado pelas rotas `app/api/integrations/{meta,google}/sync`, sempre: (1) lista campanhas via o adapter de leitura, (2) faz upsert por `(platform, externalId)`, (3) busca insights diários e faz upsert por `(campaignId, date)` — idempotente, então rodar de novo atualiza em vez de duplicar. Todo resultado (sucesso ou erro) vira uma linha em `SyncLog` e atualiza `Integration`. Nunca é automático/agendado — só dispara quando alguém clica em "Sincronizar agora".
 
 ## Adapters: como trocar a implementação
 

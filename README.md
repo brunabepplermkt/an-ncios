@@ -2,7 +2,7 @@
 
 Gerenciador de anúncios com IA para uso próprio — centraliza Meta Ads e Google Ads: campanhas, métricas, biblioteca de criativos, análise por IA, recomendações e criação de campanhas em rascunho.
 
-**Status:** V1 funcional com dados demo. Meta e Google ainda não conectados — veja [`docs/TOMORROW.md`](docs/TOMORROW.md).
+**Status:** integração real com Meta e Google Ads pronta (read-only) — falta só você preencher as credenciais. Até lá, cada plataforma mostra dados demo automaticamente. Veja [`docs/TOMORROW.md`](docs/TOMORROW.md).
 
 ## Stack
 
@@ -32,9 +32,10 @@ npm run build       # next build (roda typecheck junto)
 ## Segurança / regras desta V1
 
 - Meta e Google Ads estão em **modo leitura apenas**. Nenhuma escrita real é possível: `MetaWriteAdapter`/`GoogleWriteAdapter` (`lib/adapters/disabled-write-adapter.ts`) rejeitam qualquer chamada.
-- O wizard de campanha (`/drafts/new`) sempre termina em **"Salvar draft"** — nunca publica.
-- Enquanto nenhuma conta estiver conectada, o Dashboard e Campanhas mostram **dados demo**, sinalizados visualmente com um selo roxo "DADOS DEMO".
-- Nenhuma credencial real foi configurada durante a construção desta V1.
+- O wizard de campanha (`/drafts/new`) sempre termina em **"Salvar draft"** — o botão "Publicar" existe, mas fica sempre desabilitado.
+- Cada plataforma (Meta/Google) mostra **dados demo** até você conectar e sincronizar de verdade — a partir daí, só dados reais aparecem para aquela plataforma (nunca misturados). Ver `docs/ARCHITECTURE.md`, seção "Modo DEMO/REAL".
+- Sincronização é sempre **manual** (botão "Sincronizar agora" em `/integrations`) — nunca automática.
+- Nenhuma credencial real foi configurada nesta sessão. Passo a passo para conectar: `docs/META_SETUP.md` / `docs/GOOGLE_SETUP.md`.
 
 ## Documentação
 
@@ -43,4 +44,5 @@ npm run build       # next build (roda typecheck junto)
 - [`docs/GOOGLE_SETUP.md`](docs/GOOGLE_SETUP.md) — como conectar Google Ads (read-only).
 - [`docs/SKILLS.md`](docs/SKILLS.md) — skills instaladas e como foram validadas.
 - [`docs/TOMORROW.md`](docs/TOMORROW.md) — checklist do que fazer amanhã.
-- [`OVERNIGHT_REPORT.md`](OVERNIGHT_REPORT.md) — relatório do que foi construído nesta sessão.
+- [`OVERNIGHT_REPORT.md`](OVERNIGHT_REPORT.md) — relatório da construção da V1 (dados demo).
+- [`REAL_DATA_REPORT.md`](REAL_DATA_REPORT.md) — relatório da transição para dados reais (Meta/Google read-only).

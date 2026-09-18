@@ -70,6 +70,11 @@ export function CreativeCard({
             {Math.round(creative.durationSeconds)}s
           </span>
         )}
+        {creative.externalMetaId && (
+          <span className="absolute bottom-2 left-2 rounded bg-blue-600/85 px-1.5 py-0.5 text-[10px] font-medium text-white" title={`Vinculado ao criativo Meta ${creative.externalMetaId}`}>
+            Meta ✓
+          </span>
+        )}
       </div>
       <div className="p-2.5">
         <p className="truncate text-xs font-medium" title={creative.fileName}>

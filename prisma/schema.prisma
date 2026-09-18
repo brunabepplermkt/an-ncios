@@ -113,6 +113,8 @@ model Campaign {
 
   metricsDaily CampaignMetricDaily[]
   creatives    CampaignCreative[]
+
+  @@unique([platform, externalId])
 }
 
 model CampaignMetricDaily {

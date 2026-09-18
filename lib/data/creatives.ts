@@ -20,6 +20,7 @@ export interface CreativeListItem {
   categoryName: string | null;
   createdAt: string;
   isDemo: boolean;
+  externalMetaId: string | null;
 }
 
 export async function listCreatives(params?: { categoryId?: string; kind?: "IMAGE" | "VIDEO"; search?: string }) {
@@ -62,6 +63,7 @@ function toListItem(c: Awaited<ReturnType<typeof prisma.creative.findMany>>[numb
     categoryName: c.category?.name ?? null,
     createdAt: c.createdAt.toISOString(),
     isDemo: c.storageKey.startsWith("demo:"),
+    externalMetaId: c.externalMetaId,
   };
 }
 

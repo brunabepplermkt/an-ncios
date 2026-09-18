@@ -16,6 +16,7 @@ export function CreativeLibrary({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkCategory, setBulkCategory] = useState("");
   const [bulkTags, setBulkTags] = useState("");
+  const [bulkProduct, setBulkProduct] = useState("");
   const [saving, setSaving] = useState(false);
 
   function toggle(id: string) {
@@ -36,10 +37,12 @@ export function CreativeLibrary({
       const body: Record<string, unknown> = { ids: Array.from(selected) };
       if (bulkCategory) body.categoryId = bulkCategory;
       if (bulkTags) body.tags = bulkTags.split(",").map((t) => t.trim()).filter(Boolean);
+      if (bulkProduct) body.product = bulkProduct;
       await fetch("/api/creatives", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       setSelected(new Set());
       setBulkCategory("");
       setBulkTags("");
+      setBulkProduct("");
       router.refresh();
     } finally {
       setSaving(false);
@@ -67,6 +70,12 @@ export function CreativeLibrary({
               </option>
             ))}
           </select>
+          <input
+            value={bulkProduct}
+            onChange={(e) => setBulkProduct(e.target.value)}
+            placeholder="Acomodação/produto"
+            className="rounded-md border border-border bg-surface px-2 py-1.5 text-sm"
+          />
           <input
             value={bulkTags}
             onChange={(e) => setBulkTags(e.target.value)}

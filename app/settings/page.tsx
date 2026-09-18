@@ -2,10 +2,9 @@ import Link from "next/link";
 import { CategoryManager } from "@/components/CategoryManager";
 import { SettingsForm } from "@/components/SettingsForm";
 import { Card, PageHeader } from "@/components/ui";
-import { metaReadAdapter } from "@/lib/adapters/meta/read-adapter";
-import { googleReadAdapter } from "@/lib/adapters/google/read-adapter";
 import { prisma } from "@/lib/db";
 import { getAIProvider } from "@/lib/ai";
+import { resolveGoogleStatus, resolveMetaStatus } from "@/lib/integrations";
 import { getSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -14,8 +13,8 @@ export default async function SettingsPage() {
   const [settings, categories, metaState, googleState] = await Promise.all([
     getSettings(),
     prisma.category.findMany({ orderBy: { name: "asc" } }),
-    metaReadAdapter.getConnectionState(),
-    googleReadAdapter.getConnectionState(),
+    resolveMetaStatus(),
+    resolveGoogleStatus(),
   ]);
   const ai = getAIProvider();
 

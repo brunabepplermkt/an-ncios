@@ -1,26 +1,31 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { prepareTestDatabase } from "./setup/test-db";
+import { hasTestDatabase, prepareTestDatabase } from "./setup/test-db";
+import { resolvePeriod } from "@/lib/data/period";
 
+// See tests/setup/test-db.ts — requires TEST_DATABASE_URL, skips otherwise.
 prepareTestDatabase("campaigns-data");
 
-const { prisma } = await import("@/lib/db");
-const { getCampaignsWithMetrics, getDashboardSummary } = await import("@/lib/data/campaigns");
-const { resolvePeriod } = await import("@/lib/data/period");
+const { prisma } = hasTestDatabase ? await import("@/lib/db") : { prisma: undefined! };
+const { getCampaignsWithMetrics, getDashboardSummary } = hasTestDatabase
+  ? await import("@/lib/data/campaigns")
+  : { getCampaignsWithMetrics: undefined!, getDashboardSummary: undefined! };
 
 async function resetDb() {
   await prisma.campaignMetricDaily.deleteMany();
   await prisma.campaign.deleteMany();
 }
 
-beforeEach(resetDb);
-afterAll(async () => {
-  await resetDb();
-  await prisma.$disconnect();
-});
+if (hasTestDatabase) {
+  beforeEach(resetDb);
+  afterAll(async () => {
+    await resetDb();
+    await prisma.$disconnect();
+  });
+}
 
 const period = resolvePeriod("30d", "UTC");
 
-describe("getCampaignsWithMetrics / getDashboardSummary with edge-case data", () => {
+describe.skipIf(!hasTestDatabase)("getCampaignsWithMetrics / getDashboardSummary with edge-case data (requires TEST_DATABASE_URL)", () => {
   it("handles a campaign with spend but zero conversions without crashing, and excludes it from topPerformers", async () => {
     const campaign = await prisma.campaign.create({
       data: { platform: "GOOGLE", name: "Sem conversão", status: "ACTIVE", isDemo: false, externalId: "c-noconv" },

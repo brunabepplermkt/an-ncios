@@ -1,15 +1,19 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import { prepareTestDatabase } from "./setup/test-db";
+import { hasTestDatabase, prepareTestDatabase } from "./setup/test-db";
 
 // Must run before any `@/lib/db` import — PrismaClient binds DATABASE_URL
-// at construction time. This points at a throwaway prisma/test.db, never
-// the dev.db the running app/demo data lives in.
+// at construction time. This points at a Postgres schema dedicated to this
+// file, never the real Supabase database the running app's data lives in.
+// No-ops (and the dynamic imports below are skipped) without
+// TEST_DATABASE_URL set — see tests/setup/test-db.ts.
 prepareTestDatabase("sync-and-mode");
 
-const { prisma } = await import("@/lib/db");
-const { syncPlatformCampaigns } = await import("@/lib/sync");
-const { getPlatformMode, getPlatformModes, isDemoFilterFor } = await import("@/lib/data/mode");
-const { campaignModeWhere } = await import("@/lib/data/campaigns");
+const { prisma } = hasTestDatabase ? await import("@/lib/db") : { prisma: undefined! };
+const { syncPlatformCampaigns } = hasTestDatabase ? await import("@/lib/sync") : { syncPlatformCampaigns: undefined! };
+const { getPlatformMode, getPlatformModes, isDemoFilterFor } = hasTestDatabase
+  ? await import("@/lib/data/mode")
+  : { getPlatformMode: undefined!, getPlatformModes: undefined!, isDemoFilterFor: undefined! };
+const { campaignModeWhere } = hasTestDatabase ? await import("@/lib/data/campaigns") : { campaignModeWhere: undefined! };
 
 async function resetDb() {
   await prisma.campaignMetricDaily.deleteMany();
@@ -18,11 +22,13 @@ async function resetDb() {
   await prisma.campaign.deleteMany();
 }
 
-beforeEach(resetDb);
-afterAll(async () => {
-  await resetDb();
-  await prisma.$disconnect();
-});
+if (hasTestDatabase) {
+  beforeEach(resetDb);
+  afterAll(async () => {
+    await resetDb();
+    await prisma.$disconnect();
+  });
+}
 
 const fakeCampaigns = [
   { externalId: "camp-1", name: "Campanha 1", status: "ACTIVE", objective: "Leads", dailyBudget: 50 },
@@ -42,7 +48,7 @@ function fakeAdapter(overrides?: { insights?: Array<{ date: string; impressions:
   };
 }
 
-describe("syncPlatformCampaigns", () => {
+describe.skipIf(!hasTestDatabase)("syncPlatformCampaigns (requires TEST_DATABASE_URL)", () => {
   it("creates real (isDemo=false) campaigns and daily metrics from adapter data", async () => {
     const result = await syncPlatformCampaigns("GOOGLE", fakeAdapter(), "1234567890", 30);
     expect(result.ok).toBe(true);
@@ -95,7 +101,7 @@ describe("syncPlatformCampaigns", () => {
   });
 });
 
-describe("getPlatformMode / campaignModeWhere", () => {
+describe.skipIf(!hasTestDatabase)("getPlatformMode / campaignModeWhere (requires TEST_DATABASE_URL)", () => {
   it("reports DEMO when no real campaign exists for a platform", async () => {
     await prisma.campaign.create({ data: { platform: "META", name: "Demo", status: "ACTIVE", isDemo: true } });
     expect(await getPlatformMode("META")).toBe("DEMO");

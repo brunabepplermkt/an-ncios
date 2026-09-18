@@ -46,13 +46,13 @@ lib/
     google-keywords.ts        Demo para a IA responder sobre keywords
     google-search-terms.ts    Demo para a IA responder sobre search terms
 
-prisma/schema.prisma   Modelo de dados (SQLite hoje; migrável para Postgres/Supabase)
+prisma/schema.prisma   Modelo de dados (Postgres via Supabase — DATABASE_URL pooled + DIRECT_URL direta)
 ```
 
 ## Por que essas escolhas
 
 - **Next.js App Router**: um único deploy, Server Components eliminam a necessidade de uma API separada para leitura, fácil de rodar localmente.
-- **Prisma + SQLite**: zero custo, zero serviço externo, schema já é Postgres-compatível — trocar `datasource.url` para uma connection string Supabase/Postgres é a única mudança necessária no futuro.
+- **Prisma + Postgres (Supabase)**: banco gerenciado, persistente entre deploys — necessário assim que a app roda em serverless (Vercel), já que filesystem local não sobrevive entre invocações. `DATABASE_URL` usa o connection pooler (porta 6543, `pgbouncer=true`) para runtime; `DIRECT_URL` (porta 5432) é usada só por `prisma db push`/`migrate`, que precisam de conexão direta.
 - **Sem biblioteca de gráficos externa**: os gráficos (`components/LineChart.tsx`) são SVG inline — menos dependência, menos superfície de bugs, suficiente para séries temporais simples.
 - **Sem fila/worker**: todas as operações são request/response síncronas; não há volume que justifique um worker separado nesta fase.
 

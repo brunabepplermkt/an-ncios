@@ -8,14 +8,16 @@ Gerenciador de anúncios com IA para uso próprio — centraliza Meta Ads e Goog
 
 - Next.js 16 (App Router) + TypeScript + React 19
 - Tailwind CSS v4
-- Prisma + SQLite (arquivo local `prisma/dev.db`)
+- Prisma + Postgres (Supabase)
 - Vitest para testes
 
 ## Rodando localmente
 
 ```bash
 npm install
-npm run db:push   # cria o banco SQLite a partir do schema
+# preencha DATABASE_URL e DIRECT_URL no .env com a connection string do seu
+# projeto Supabase (veja .env.example)
+npm run db:push   # cria as tabelas no Postgres a partir do schema
 npm run seed       # popula dados demo (campanhas, métricas, criativos)
 npm run dev        # http://localhost:3000
 ```
@@ -25,7 +27,7 @@ Outros scripts:
 ```bash
 npm run lint       # eslint
 npm run typecheck  # tsc --noEmit
-npm run test       # vitest run
+npm run test       # vitest run (testes que tocam banco pulam sem TEST_DATABASE_URL)
 npm run build       # next build (roda typecheck junto)
 ```
 

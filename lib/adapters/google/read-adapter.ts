@@ -44,7 +44,8 @@ export class GoogleReadAdapter implements AdReadAdapter {
     );
   }
 
-  async getInsights(_campaignExternalId: string, _days: number): Promise<AdPlatformCampaignInsights[]> {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- signature required by AdReadAdapter
+  async getInsights(campaignExternalId: string, days: number): Promise<AdPlatformCampaignInsights[]> {
     throw new Error("Integração real com Google Ads ainda não implementada nesta V1.");
   }
 }

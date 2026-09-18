@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { clsx } from "clsx";
 import { CreativePreview } from "./CreativeCard";
 import type { CreativeListItem } from "@/lib/data/creatives";
+import { computeDraftStatus } from "@/lib/drafts";
 
 export interface DraftFormState {
   platform: "META" | "GOOGLE";
@@ -48,16 +49,6 @@ const GOOGLE_STEPS = ["Objetivo", "Acomodação/produto", "Orçamento", "Localiz
 const META_OBJECTIVES = ["Conversões", "Tráfego", "Reconhecimento de marca", "Engajamento", "Geração de leads"];
 const GOOGLE_OBJECTIVES = ["Leads", "Vendas", "Tráfego no site", "Reconhecimento de marca"];
 const CTAS = ["Saiba mais", "Reserve agora", "Fale conosco", "Compre agora", "Cadastre-se"];
-
-function computeStatus(state: DraftFormState): string {
-  const requiredMeta = [state.objective, state.product, state.budget, state.headline, state.primaryText];
-  const requiredGoogle = [state.objective, state.product, state.budget, state.landingPage, state.keywords];
-  const required = state.platform === "META" ? requiredMeta : requiredGoogle;
-  const filled = required.filter((v) => v.trim().length > 0).length;
-  if (filled === 0) return "INCOMPLETE";
-  if (filled < required.length) return "INCOMPLETE";
-  return "READY_FOR_REVIEW";
-}
 
 export function DraftWizard({
   initial,
@@ -107,7 +98,7 @@ export function DraftWizard({
         headlines: state.headlines.split("\n").map((k) => k.trim()).filter(Boolean),
         descriptions: state.descriptions.split("\n").map((k) => k.trim()).filter(Boolean),
         creativeIds: state.creativeIds,
-        status: computeStatus(state),
+        status: computeDraftStatus(state),
       };
 
       const res = await fetch(draftId ? `/api/drafts/${draftId}` : "/api/drafts", {

@@ -6,6 +6,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const original = await prisma.draft.findUnique({ where: { id } });
   if (!original) return NextResponse.json({ error: "Não encontrado." }, { status: 404 });
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructured to exclude from the create() payload
   const { id: _id, createdAt: _c, updatedAt: _u, ...rest } = original;
   const copy = await prisma.draft.create({ data: { ...rest, name: `${original.name} (cópia)`, status: "INCOMPLETE" } });
   return NextResponse.json({ draft: copy });

@@ -23,16 +23,15 @@ export function resolvePeriod(key: PeriodKey, customStart?: string, customEnd?: 
 
   if (key === "custom" && customStart && customEnd) {
     const start = startOfDay(new Date(customStart));
-    const end = endOfDay(new Date(customEnd));
-    const days = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1);
-    return { start, end, days };
+    const endDay = startOfDay(new Date(customEnd));
+    const days = Math.max(1, Math.round((endDay.getTime() - start.getTime()) / 86_400_000) + 1);
+    return { start, end: endOfDay(endDay), days };
   }
 
   if (key === "this_month") {
     const start = startOfDay(new Date(today.getFullYear(), today.getMonth(), 1));
-    const end = endOfDay(today);
-    const days = Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
-    return { start, end, days };
+    const days = Math.round((startOfDay(today).getTime() - start.getTime()) / 86_400_000) + 1;
+    return { start, end: endOfDay(today), days };
   }
 
   const days = key === "7d" ? 7 : key === "14d" ? 14 : 30;

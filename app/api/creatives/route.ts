@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getCreativeStorageAdapter } from "@/lib/storage";
-
-const ALLOWED_IMAGE = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-const ALLOWED_VIDEO = ["video/mp4", "video/quicktime"];
+import { classifyCreativeMime } from "@/lib/creatives/validate";
 
 export async function POST(req: Request) {
   const form = await req.formData();
@@ -37,11 +35,11 @@ export async function POST(req: Request) {
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     const mimeType = file.type || "application/octet-stream";
-    const isImage = ALLOWED_IMAGE.includes(mimeType);
-    const isVideo = ALLOWED_VIDEO.includes(mimeType);
-    if (!isImage && !isVideo) {
+    const kind = classifyCreativeMime(mimeType);
+    if (!kind) {
       continue; // skip unsupported type instead of failing the whole batch
     }
+    const isImage = kind === "IMAGE";
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const stored = await storage.save({ buffer, fileName: file.name, mimeType });

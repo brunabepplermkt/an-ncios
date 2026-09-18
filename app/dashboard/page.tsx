@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FilterBar } from "@/components/FilterBar";
 import { Card, DemoBadge, PageHeader, PlatformBadge, SeverityBadge, StatTile } from "@/components/ui";
-import { getCampaignsWithMetrics, getDashboardSummary } from "@/lib/data/campaigns";
+import { getDashboardSummary } from "@/lib/data/campaigns";
 import { getCreativeStats } from "@/lib/data/creatives";
 import type { PeriodKey } from "@/lib/data/period";
 import { resolvePeriod } from "@/lib/data/period";

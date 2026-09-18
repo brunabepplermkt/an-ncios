@@ -100,13 +100,21 @@ export class GoogleReadAdapter implements AdReadAdapter {
     return parseCampaignsResponse(response);
   }
 
-  async getInsights(campaignExternalId: string, days: number): Promise<AdPlatformCampaignInsights[]> {
-    const customerId = this.requireCustomerId();
+  async getInsights(campaignExternalId: string, days: number, customerIdOverride?: string): Promise<AdPlatformCampaignInsights[]> {
+    const customerId = this.requireCustomerId(customerIdOverride);
     const end = new Date();
     const start = new Date(end.getTime() - (days - 1) * 86_400_000);
     const fmt = (d: Date) => d.toISOString().slice(0, 10);
     const response = await this.search(customerId, buildCampaignInsightsQuery(campaignExternalId, fmt(start), fmt(end)));
     return parseInsightsResponse(campaignExternalId, response);
+  }
+
+  /** Single-day insights for an exact date — used by the /integrations/diagnostics validation tool, never by the regular sync path. */
+  async getInsightsForDate(campaignExternalId: string, dateISO: string, customerIdOverride?: string): Promise<AdPlatformCampaignInsights | null> {
+    const customerId = this.requireCustomerId(customerIdOverride);
+    const response = await this.search(customerId, buildCampaignInsightsQuery(campaignExternalId, dateISO, dateISO));
+    const rows = parseInsightsResponse(campaignExternalId, response);
+    return rows[0] ?? null;
   }
 
   private requireDeveloperToken(): string {

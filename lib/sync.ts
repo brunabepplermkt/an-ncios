@@ -13,7 +13,7 @@ export interface SyncResult {
 
 interface SyncableAdapter {
   listCampaigns(accountId?: string): Promise<AdPlatformCampaign[]>;
-  getInsights(campaignExternalId: string, days: number): Promise<AdPlatformCampaignInsights[]>;
+  getInsights(campaignExternalId: string, days: number, accountId?: string): Promise<AdPlatformCampaignInsights[]>;
 }
 
 /**
@@ -53,7 +53,7 @@ export async function syncPlatformCampaigns(
         },
       });
 
-      const insights = await adapter.getInsights(c.externalId, days);
+      const insights = await adapter.getInsights(c.externalId, days, accountId);
       for (const row of insights) {
         const date = new Date(`${row.date}T00:00:00.000Z`);
         const data = {

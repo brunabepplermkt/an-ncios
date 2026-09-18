@@ -161,17 +161,15 @@ export class MetaReadAdapter implements AdReadAdapter {
       "--limit",
       "100",
     ]);
-    return rows.map((row) => ({
-      campaignExternalId,
-      date: row.date_start,
-      impressions: Number(row.impressions ?? 0),
-      reach: row.reach ? Number(row.reach) : undefined,
-      clicks: Number(row.clicks ?? 0),
-      spend: Number(row.spend ?? 0),
-      conversions: sumActionValues(row.conversions),
-      revenue: row.conversion_values ? sumActionValues(row.conversion_values) : undefined,
-      frequency: row.frequency ? Number(row.frequency) : undefined,
-    }));
+    return rows.map((row) => mapInsightsRow(campaignExternalId, row));
+  }
+
+  /** Single-day insights for an exact date — used by the /integrations/diagnostics validation tool, never by the regular sync path. */
+  async getInsightsForDate(campaignExternalId: string, dateISO: string): Promise<AdPlatformCampaignInsights | null> {
+    if (!this.accessToken) throw classifyMetaError("META", "No credentials found. Set META_ADS_ACCESS_TOKEN.");
+    const rows = await this.paginate<MetaInsightsRow>(["insights-date", campaignExternalId, "--start", dateISO, "--end", dateISO, "--time-increment", "1"]);
+    if (rows.length === 0) return null;
+    return mapInsightsRow(campaignExternalId, rows[0]);
   }
 
   private requireAccountId(override?: string): string {
@@ -223,6 +221,20 @@ function tryParseCliError(stderr?: string): string | undefined {
 function sumActionValues(entries?: MetaActionEntry[]): number {
   if (!entries || entries.length === 0) return 0;
   return entries.reduce((sum, e) => sum + (Number(e.value) || 0), 0);
+}
+
+function mapInsightsRow(campaignExternalId: string, row: MetaInsightsRow): AdPlatformCampaignInsights {
+  return {
+    campaignExternalId,
+    date: row.date_start,
+    impressions: Number(row.impressions ?? 0),
+    reach: row.reach ? Number(row.reach) : undefined,
+    clicks: Number(row.clicks ?? 0),
+    spend: Number(row.spend ?? 0),
+    conversions: sumActionValues(row.conversions),
+    revenue: row.conversion_values ? sumActionValues(row.conversion_values) : undefined,
+    frequency: row.frequency ? Number(row.frequency) : undefined,
+  };
 }
 
 export const metaReadAdapter = new MetaReadAdapter();

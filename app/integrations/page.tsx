@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, PageHeader } from "@/components/ui";
 import { IntegrationPanel } from "@/components/IntegrationPanel";
 import { getRecentSyncLogs, resolveGoogleStatus, resolveMetaStatus } from "@/lib/integrations";
@@ -14,7 +15,15 @@ export default async function IntegrationsPage() {
 
   return (
     <div>
-      <PageHeader title="Integrações" description="Conecte Meta Ads e Google Ads em modo leitura. Sincronização é sempre manual." />
+      <PageHeader
+        title="Integrações"
+        description="Conecte Meta Ads e Google Ads em modo leitura. Sincronização é sempre manual."
+        actions={
+          <Link href="/integrations/diagnostics" className="rounded-md border border-border px-3 py-2 text-sm font-medium hover:bg-surface-muted">
+            Diagnóstico de dados
+          </Link>
+        }
+      />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <IntegrationPanel

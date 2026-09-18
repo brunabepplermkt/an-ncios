@@ -41,4 +41,6 @@ yarn-error.log*
 next-env.d.ts
 .env
 prisma/dev.db
+prisma/test-*.db
+prisma/test-*.db-journal
 storage/uploads

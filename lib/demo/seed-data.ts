@@ -1,3 +1,4 @@
+import { todayStartInZone } from "@/lib/data/period";
 import type { RawMetrics } from "@/lib/metrics/types";
 
 export const INITIAL_CATEGORIES = [
@@ -170,12 +171,14 @@ export interface GeneratedDailyMetric extends RawMetrics {
 export function generateDailyMetrics(profile: DemoCampaignProfile, days: number): GeneratedDailyMetric[] {
   const rand = mulberry32(hashKey(profile.key));
   const rows: GeneratedDailyMetric[] = [];
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Anchored to the default business timezone so demo "today"/"yesterday"
+  // filters line up with what a Settings.timezone="America/Sao_Paulo" user
+  // sees — otherwise UTC-midnight-anchored rows can fall just outside the
+  // zoned "today" window and make the dashboard look empty.
+  const today = todayStartInZone();
 
   for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
+    const date = new Date(today.getTime() - i * 86_400_000);
 
     const dayIndexFromEnd = i; // 0 = today
     let ctrMultiplier = 1;

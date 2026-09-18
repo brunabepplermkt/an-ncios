@@ -4,7 +4,7 @@ import { LineChart } from "@/components/LineChart";
 import { Card, DemoBadge, PageHeader, PlatformBadge, StatTile, StatusBadge } from "@/components/ui";
 import { getCampaignDetail } from "@/lib/data/campaigns";
 import type { PeriodKey } from "@/lib/data/period";
-import { resolvePeriod } from "@/lib/data/period";
+import { PERIOD_LABELS, resolvePeriod } from "@/lib/data/period";
 import { formatCurrency, formatNumber, formatPercent, formatRatio } from "@/lib/metrics/calc";
 import { getSettings } from "@/lib/settings";
 
@@ -19,10 +19,11 @@ export default async function CampaignDetailPage({
 }) {
   const { id } = await params;
   const sp = await searchParams;
+  const settings = await getSettings();
   const periodKey = (sp.period as PeriodKey) ?? "30d";
-  const period = resolvePeriod(periodKey);
+  const period = resolvePeriod(periodKey, settings.timezone);
 
-  const [campaign, settings] = await Promise.all([getCampaignDetail(id, period), getSettings()]);
+  const campaign = await getCampaignDetail(id, period);
   if (!campaign) notFound();
 
   const spendSeries = campaign.series.map((s) => ({ label: s.date, value: s.raw.spend }));
@@ -45,14 +46,14 @@ export default async function CampaignDetailPage({
         }
       />
 
-      <div className="mb-6 flex gap-1 rounded-lg border border-border bg-surface p-1 w-fit">
-        {(["7d", "14d", "30d"] as PeriodKey[]).map((p) => (
+      <div className="mb-6 flex flex-wrap gap-1 rounded-lg border border-border bg-surface p-1 w-fit">
+        {(["today", "yesterday", "7d", "14d", "30d", "this_month", "last_month"] as PeriodKey[]).map((p) => (
           <Link
             key={p}
             href={`/campaigns/${id}?period=${p}`}
             className={`rounded-md px-3 py-1.5 text-sm ${p === periodKey ? "bg-accent text-accent-foreground font-medium" : "text-muted hover:text-foreground"}`}
           >
-            {p === "7d" ? "7 dias" : p === "14d" ? "14 dias" : "30 dias"}
+            {PERIOD_LABELS[p]}
           </Link>
         ))}
       </div>

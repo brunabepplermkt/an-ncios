@@ -5,6 +5,7 @@ import {
   INITIAL_CATEGORIES,
   generateDailyMetrics,
 } from "../lib/demo/seed-data";
+import { todayStartInZone } from "../lib/data/period";
 
 const prisma = new PrismaClient();
 
@@ -84,10 +85,9 @@ async function main() {
       const profile = DEMO_CAMPAIGNS.find((p) => p.key === campaignKey)!;
       const platform = profile.platform;
       const days = 14;
+      const todayStart = todayStartInZone();
       for (let i = days - 1; i >= 0; i--) {
-        const date = new Date();
-        date.setHours(0, 0, 0, 0);
-        date.setDate(date.getDate() - i);
+        const date = new Date(todayStart.getTime() - i * 86_400_000);
 
         const progress = 1 - i / days;
         let ctrMultiplier = 1;

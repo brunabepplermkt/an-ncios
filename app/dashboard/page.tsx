@@ -15,16 +15,16 @@ export const dynamic = "force-dynamic";
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; platform?: string }>;
+  searchParams: Promise<{ period?: string; platform?: string; start?: string; end?: string }>;
 }) {
   const sp = await searchParams;
-  const period = resolvePeriod((sp.period as PeriodKey) ?? "30d");
+  const settings = await getSettings();
   const platform = (sp.platform as "META" | "GOOGLE" | "ALL") ?? "ALL";
   const periodKey = (sp.period as PeriodKey) ?? "30d";
+  const period = resolvePeriod(periodKey, settings.timezone, sp.start, sp.end);
 
-  const [summary, settings, creativeStats, modes] = await Promise.all([
+  const [summary, creativeStats, modes] = await Promise.all([
     getDashboardSummary(period, platform),
-    getSettings(),
     getCreativeStats(7),
     getPlatformModes(),
   ]);
@@ -52,7 +52,7 @@ export default async function DashboardPage({
         actions={<ModeBadges modes={modes} />}
       />
 
-      <FilterBar basePath="/dashboard" currentPeriod={periodKey} currentPlatform={platform} />
+      <FilterBar basePath="/dashboard" currentPeriod={periodKey} currentPlatform={platform} customStart={sp.start} customEnd={sp.end} />
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile label="Investimento total" value={formatCurrency(t.spend, currency)} />

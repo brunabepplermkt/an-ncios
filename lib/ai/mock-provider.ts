@@ -4,6 +4,7 @@ import { demoKeywords } from "@/lib/demo/google-keywords";
 import { demoSearchTerms } from "@/lib/demo/google-search-terms";
 import { formatCurrency, formatPercent, formatRatio } from "@/lib/metrics/calc";
 import { previousPeriod, resolvePeriod } from "@/lib/data/period";
+import { getSettings } from "@/lib/settings";
 import type { AIAnalysisResult, AIProvider, AnalysisContext, Recommendation } from "./provider";
 
 function includesAny(text: string, needles: string[]) {
@@ -22,7 +23,8 @@ export class MockAIProvider implements AIProvider {
     const q = ctx.question.toLowerCase();
     const days = ctx.days ?? 30;
     const platform = ctx.platform && ctx.platform !== "ALL" ? ctx.platform : "ALL";
-    const period = resolvePeriod(days <= 7 ? "7d" : days <= 14 ? "14d" : "30d");
+    const settings = await getSettings();
+    const period = resolvePeriod(days <= 7 ? "7d" : days <= 14 ? "14d" : "30d", settings.timezone);
 
     if (includesAny(q, ["fadiga", "cansando", "cansad"])) return this.analyzeFatigue();
     if (includesAny(q, ["piorou", "piorar", "caiu", "queda"])) return this.analyzeChange(period, platform, "worse");

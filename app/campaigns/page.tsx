@@ -16,16 +16,17 @@ type SortKey = "spend" | "conversions" | "ctr" | "cpa" | "name";
 export default async function CampaignsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ period?: string; platform?: string; q?: string; sort?: string }>;
+  searchParams: Promise<{ period?: string; platform?: string; q?: string; sort?: string; start?: string; end?: string }>;
 }) {
   const sp = await searchParams;
+  const settings = await getSettings();
   const periodKey = (sp.period as PeriodKey) ?? "30d";
   const platform = (sp.platform as "META" | "GOOGLE" | "ALL") ?? "ALL";
   const search = (sp.q ?? "").toLowerCase();
   const sort = (sp.sort as SortKey) ?? "spend";
-  const period = resolvePeriod(periodKey);
+  const period = resolvePeriod(periodKey, settings.timezone, sp.start, sp.end);
 
-  const [campaigns, settings, modes] = await Promise.all([getCampaignsWithMetrics(period, platform), getSettings(), getPlatformModes()]);
+  const [campaigns, modes] = await Promise.all([getCampaignsWithMetrics(period, platform), getPlatformModes()]);
 
   const filtered = campaigns.filter((c) => c.name.toLowerCase().includes(search));
   const sorted = [...filtered].sort((a, b) => {
@@ -45,19 +46,28 @@ export default async function CampaignsPage({
   });
 
   function sortHref(key: SortKey) {
-    const params = new URLSearchParams({ period: periodKey, platform, q: sp.q ?? "", sort: key });
+    const params = new URLSearchParams({ period: periodKey, platform, q: sp.q ?? "", sort: key, start: sp.start ?? "", end: sp.end ?? "" });
     return `/campaigns?${params.toString()}`;
   }
 
   return (
     <div>
       <PageHeader title="Campanhas" description="Todas as campanhas, Meta e Google, lado a lado." actions={<ModeBadges modes={modes} />} />
-      <FilterBar basePath="/campaigns" currentPeriod={periodKey} currentPlatform={platform} extraParams={{ q: sp.q ?? "", sort }} />
+      <FilterBar
+        basePath="/campaigns"
+        currentPeriod={periodKey}
+        currentPlatform={platform}
+        customStart={sp.start}
+        customEnd={sp.end}
+        extraParams={{ q: sp.q ?? "", sort }}
+      />
 
       <form action="/campaigns" method="get" className="mb-4 flex gap-2">
         <input type="hidden" name="period" value={periodKey} />
         <input type="hidden" name="platform" value={platform} />
         <input type="hidden" name="sort" value={sort} />
+        <input type="hidden" name="start" value={sp.start ?? ""} />
+        <input type="hidden" name="end" value={sp.end ?? ""} />
         <input
           type="search"
           name="q"

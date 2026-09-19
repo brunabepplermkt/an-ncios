@@ -31,3 +31,29 @@ Não existe, na marketplace consultada, nenhum plugin/skill chamado exatamente `
 ## `armavita-meta-ads-mcp` — apenas referência
 
 Repositório analisado (`EfrainTorres/armavita-meta-ads-mcp`, servidor MCP em Rust com ~125 ferramentas para Meta Ads, incluindo mutações). **Não foi clonado como skill, não foi compilado, nenhum token foi configurado e nenhuma mutação foi habilitada.** Serve apenas como referência de design para uma futura implementação real de `MetaWriteAdapter` — ver `docs/META_SETUP.md`.
+
+## `recanto-azul-designer` — skill autoral (não copiada de terceiros)
+
+Criada do zero em `~/.claude/skills/recanto-azul-designer/` a pedido do usuário, para atuar como diretor de arte/designer gráfico especializado no Sítio Recanto Azul (hospedagem de experiência em Alfredo Wagner/SC).
+
+Diferente das demais entradas desta página, **não é cópia de nenhuma skill de terceiros**. Antes de escrevê-la, buscou-se no catálogo de plugins da conta algo equivalente a `graphic-design`, `social-media-graphic`, `ad-creative-design`, `banner-design`, `canvas-design`, `ad-creative` e `ad-copy` (repositórios de terceiros citados pelo usuário: `ArnavPuri/designskills`, `borghei/Claude-Skills`, `robpalmer99`) — nenhum estava instalado neste ambiente (`~/.claude/skills/` continha só `session-start-hook`), então a skill foi escrita como conteúdo original, especializado na marca, sem copiar texto de nenhuma fonte externa.
+
+Estrutura:
+
+```
+recanto-azul-designer/
+├── SKILL.md                              # papel, princípios, workflow de 9 passos, checklist
+└── references/
+    ├── brand-kit.md                      # posicionamento, paleta, tipografia, estilo permitido/proibido
+    ├── acomodacoes.md                    # fonte de verdade das 6 acomodações (nunca inventar dado)
+    ├── copywriting.md                    # tom de voz, frases-modelo, clichês a evitar, regras de promoção/preço
+    ├── meta-ads.md                       # estrutura de anúncio, variações de teste, requisitos de feed
+    └── direcoes-conceituais.md           # como propor as 3 direções (Fotográfica/Editorial/Performance)
+└── scripts/
+    ├── find_photos.sh                    # varre pastas do projeto por fotos, sem depender do nome bater com a acomodação
+    └── scaffold_design_dirs.sh           # cria design/{brand,templates,social,ads,stories,carousels,exports}
+```
+
+Validação: `python -m scripts.quick_validate` (do skill-creator oficial da Anthropic) reportou `Skill is valid!`; os dois scripts `.sh` passaram em `bash -n` e foram testados em execução real.
+
+Observação importante: **este ambiente não tem acesso ao acervo real de fotos do Sítio Recanto Azul** (nenhuma pasta de fotos foi encontrada no projeto). A skill já está preparada para localizá-las (`find_photos.sh` varre qualquer diretório informado, sem depender do nome da pasta), mas a etapa de seleção visual das fotos só poderá ser executada quando o acervo estiver acessível a partir de uma sessão futura.
